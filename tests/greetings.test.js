@@ -10,14 +10,11 @@ const mockDate = (mockedDate) => {
   jest.spyOn(global, "Date").mockImplementation(() => {
     return new RealDate(mockedDate);
   });
-};  
+};
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
-
-
-
 
 describe("Birthday-Greetings", () => {
   test("calls fs.readFile when MessageSender is created", () => {
@@ -26,24 +23,18 @@ describe("Birthday-Greetings", () => {
     expect(fs.readFile).toHaveBeenCalledTimes(1);
   });
 
-
-
-
   test("sendMessages when there are NO birthdays", (done) => {
     mockDate("2024-01-01");
 
-    fs.readFile.mockImplementation((path, encoding, callback) => {
-      callback(
-        null,
-        JSON.stringify([
-          {
-            first_name: "John",
-            last_name: "Doe",
-            dob: "2000-01-16",
-            email: "john.doe@foobar.com",
-          },
-        ]),
-      );
+    fs.readFile.mockImplementation(() => {
+      JSON.stringify([
+        {
+          first_name: "John",
+          last_name: "Doe",
+          dob: "2000-01-16",
+          email: "john.doe@foobar.com",
+        },
+      ]);
     });
 
     const sender = new MessageSender();
@@ -54,11 +45,9 @@ describe("Birthday-Greetings", () => {
     });
   });
 
-
-
-  
-  test("sendMessages when there are birthdays", (done) => {
-    mockDate("2024-05-05");
+  test("sendMessages when there are birthdays", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2024-05-05"));
 
     fs.readFile.mockImplementation((path, encoding, callback) => {
       callback(
@@ -75,11 +64,30 @@ describe("Birthday-Greetings", () => {
     });
 
     const sender = new MessageSender();
+    sender.sendMessages();
 
-    setImmediate(() => {
-      sender.sendMessages();
-      expect(sender.friends.length).toBe(1);
-      done();
-    });
+    expect(sender.friends.length).toBe(1);
   });
+
+  test("loads user even if date of birth is missing", () => {
+  fs.readFile.mockImplementation((path, enc, cb) => {
+    cb(
+      null,
+      JSON.stringify([
+        {
+          first_name: "Anna",
+          last_name: "Kovacs",
+          email: "anna@foo.com",
+        },
+      ])
+    );
+  });
+
+  const sender = new MessageSender();
+
+  expect(sender.friends.length).toBe(1);
+  expect(sender.friends[0].dob).toBeUndefined();
 });
+});
+
+
